@@ -1,0 +1,18 @@
+# ==========================================
+# 1. All the term of sim and syn
+sim/*
+syn/*
+
+# ==========================================
+# 2. Exceptions
+
+!sim/.gitkeep
+!syn/.gitkeep
+
+!sim/Makefile
+!syn/Makefile
+
+# reserve
+# !syn/*.sdc
+# !syn/*.tcl
+# !sim/*.cpp
