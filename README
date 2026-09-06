@@ -1,0 +1,25 @@
+# ox-core-rv32i
+RV32I 5-Stage Pipelined Core with Optimized Hazard Resolution
+
+## Why Build This?
+I'm a system hardware engineer (industrial motherboards) pivoting to front-end digital IC design. `ox-core-rv32i` is how I'm teaching myself RISC-V architecture, RTL, and FPGA synthesis. 
+
+Instead of just dropping commercial silicon onto a PCB, I want to build the microarchitecture from scratch. This repo logs that journey—from staring at the ISA spec to getting a working core on an FPGA.
+
+## Tools & Workflow
+Built entirely on an open-source EDA toolchain. 
+Workflow: `Spec` -> `RTL` -> `Simulation` -> `Synthesis` -> `FPGA Prototyping`
+
+## Roadmap
+
+- **Phase 1: Bare-Metal Core (Current / WIP)**
+  A standard 5-stage RV32I pipeline. Right now, it's all about instruction execution, datapath routing, and resolving hazards. No CSRs, CLINT, or exceptions—just a pure computational engine.
+
+- **Phase 2: Full MCU Subsystem**
+  Upgrading the core into a proper MCU. That means adding CSRs, CLINT, and IRQs, then wrapping it in an AMBA AHB-Lite bus to hook up standard peripherals (ROM, RAM, Timer, UART, GPIO, SPI). The end goal: boot an RTOS.
+
+- **Phase 3: Custom ISA (Matrix Accelerator)**
+  Adding custom instructions for matrix math. This is the ultimate stretch goal—exploring RISC-V hardware acceleration for edge workloads.
+
+## Documentation
+Check the `doc/` directory for detailed specs, RTL architecture, and design notes.
