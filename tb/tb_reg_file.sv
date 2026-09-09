@@ -31,7 +31,7 @@ module tb_reg_file ();
     end
 
     initial begin
-        $dumpfile("sim/wave.vcd");
+        $dumpfile("sim/rf_wave.vcd");
         $dumpvars(0,tb_reg_file);
     end
 
