@@ -4,6 +4,7 @@ package core_pkg;
     // local parameter ====================================================
     localparam int XLEN = 32;
     localparam int REG_ADDR_WIDTH = 5;
+    localparam int IRAM_ADDR_WIDTH = 12;
     
     //opcode====================================================
     localparam logic [6:0] OP_R_TYPE    = 7'b0110011;  // R
