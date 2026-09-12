@@ -20,7 +20,10 @@ module tb_dram ();
         .rdata(rdata),
         .wdata(wdata)
     );
-
+    initial begin
+        $dumpfile("sim/dram_wave.vcd");
+        $dumpvars(0,tb_dram);
+    end
     // clk gen 
     initial begin
         clk = 0 ;
