@@ -1,4 +1,3 @@
-`timescale 1ns/1ps
 import core_pkg::*;
 
 module dummy_dram #(
@@ -11,7 +10,7 @@ module dummy_dram #(
     input logic [31:0] wdata, // write data
     output logic [31:0] rdata  // read data
 );
-    logic [31:0] ram [0:(1<<(A_WIDTH-2))-1] // 12-2 << 1 => 1024-1 => 1023
+    logic [31:0] ram [0:(1<<(A_WIDTH-2))-1];
 
     // simulation initialize
     initial begin
