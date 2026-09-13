@@ -6,7 +6,12 @@ package core_pkg;
     localparam int REG_ADDR_WIDTH = 5;
     localparam int IRAM_ADDR_WIDTH = 12;
     localparam int DRAM_ADDR_WIDTH = 12;
-    
+    // Pc Source 
+    typedef enum logic [1:0] {
+        PC_ADD4 = 2'b00 ,
+        PC_JMP  = 2'b01 ,
+        PC_JAL  = 2'b10 
+    } pc_src_t;
     //opcode====================================================
     localparam logic [6:0] OP_R_TYPE    = 7'b0110011;  // R
     localparam logic [6:0] OP_I_TYPE    = 7'b0010011;  // I(except load and jalr)
@@ -41,17 +46,17 @@ package core_pkg;
     // Packed Structs : pipeline signal group===========================
     // IF to ID singal group
     typedef struct packed {
-        logic [31:0] pc;
+        logic [XLEN-1:0] pc;
         logic [31:0] inst;
     } if_id_t;
 
     // ID to EX signal group
     typedef struct packed {
-        logic [31:0] pc;          
-        logic [31:0] rdata1;      // --> ALU_in1
-        logic [31:0] rdata2;      // --> ALU_in1 or D_RAM
-        logic [31:0] imm;         // immediate
-        logic [4:0]  rd;          // rd
+        logic [XLEN-1:0] pc;          
+        logic [XLEN-1:0] rdata1;      // --> ALU_in1
+        logic [XLEN-1:0] rdata2;      // --> ALU_in1 or D_RAM
+        logic [XLEN-1:0] imm;         // immediate
+        logic [REG_ADDR_WIDTH-1:0]  rd;          // rd
         
         
         // control signal
@@ -67,8 +72,8 @@ package core_pkg;
 
     // EX to MEM signal group
     typedef struct packed {
-        logic [31:0] alu_result;  // ALU out
-        logic [31:0] mem_wdata;   // rdata_2
+        logic [XLEN-1:0] alu_result;  // ALU out
+        logic [XLEN-1:0] mem_wdata;   // rdata_2
         logic [4:0]  rd;          // rd
         
         // control signal
