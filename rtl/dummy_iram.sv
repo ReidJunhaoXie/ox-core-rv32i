@@ -11,7 +11,7 @@ module dummy_iram #(
 
     // EDA load machine code
     initial begin
-        $readmemh("test_data/firmware.hex", rom); 
+        $readmemh("test_data/iram_firmware.hex", rom); 
     end
 
     // Asynchrnous Read
