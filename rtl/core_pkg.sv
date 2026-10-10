@@ -2,7 +2,7 @@
 package core_pkg;
 
     // local parameter ====================================================
-    localparam int XLEN = 32;
+
     localparam int REG_ADDR_WIDTH = 5;
     localparam int IRAM_ADDR_WIDTH = 12;
     localparam int DRAM_ADDR_WIDTH = 12;
@@ -12,15 +12,15 @@ package core_pkg;
         PC_ADD4 = 2'b00 ,
         PC_ADDI = 2'b01 ,
         PC_ALU  = 2'b10 
-    } pc_src_t;
+    } jp_t;
 
     // Immediate Source
     typedef enum logic [2:0] {
         IMM_I   = 3'b000,
         IMM_S   = 3'b001,
-        IMM_B   = 3'b010,
-        IMM_J   = 3'b011,
-        IMM_U   = 3'b100 
+        IMM_B   = 3'b011,
+        IMM_U   = 3'b100, 
+        IMM_J   = 3'b101
     } imme_src_t;
 
     // RF Source
@@ -28,7 +28,7 @@ package core_pkg;
         RD_DM   = 2'b00,
         RD_ALU  = 2'b01,
         RD_PC   = 2'b10
-    } rd_src_t;
+    } rf_rd_src_t;
 
     // Alu b Source
     typedef enum logic {
@@ -75,29 +75,26 @@ package core_pkg;
 
     // Packed Structs : pipeline signal group===========================
     // IF to ID singal group
-    typedef struct packed {
-        logic [XLEN-1:0] pc;
-        logic [31:0] inst;
-    } if_id_t;
+
 
     // ID to EX signal group
     typedef struct packed {
-        logic [XLEN-1:0] pc;          
-        logic [XLEN-1:0] rdata1;      // --> ALU_in1
-        logic [XLEN-1:0] rdata2;      // --> ALU_in1 or D_RAM
-        logic [XLEN-1:0] imm;         // immediate
-        logic [REG_ADDR_WIDTH-1:0]  rd;          // rd
-        
-        
+        logic [31:0]    pc;      
+        logic [31:0]    pc_add4 ;   
+
         // control signal
-        logic        alu_src;     
-        logic        [1:0]result_src;      
-        
-        alu_op_t     alu_ctrl;    
-        
-        logic        mem_write;   
-        logic        mem_read;   
-        logic        reg_write;   
+        jp_t            jp ;
+        logic           branch ;
+        imme_src_t      imme_src ;
+        logic           rf_wen ;
+        logic           dmem_wen ;
+        rf_rd_src_t     rf_rd_src ;
+        alub_src_t      alub_src ;
+        alu_ctrl_t      alu_ctrl ;
+
+        logic [11:7]    waddr ; // rd
+        logic [31:0]    imme_ext ; 
+
     } id_ex_t;
 
     // EX to MEM signal group

@@ -16,7 +16,7 @@ module ifu (
         case (pc_src)
             PC_ADD4: pc_next = pc_add4 ;
             PC_JMP : pc_next = pc_add_jmp ;
-            PC_JAL : pc_next =  pc_add_jal ;
+            PC_JAL : pc_next = pc_add_jal ;
             default: pc_next = pc_add4 ;
         endcase
     end
