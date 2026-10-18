@@ -8,7 +8,7 @@ module decoder (
     output logic        branch,
     output imme_src_t   imme_src,
     output logic        rf_wen,
-    output logic        dmem_wen,
+    output logic        dm_wen,
     output rf_rd_src_t  rf_rd_src,
     output alub_src_t   alub_src,
     
@@ -20,10 +20,10 @@ module decoder (
     
     always_comb begin : main_decoder
         // default : R-type disable rf write
-        jp = PC_ADD4 ; branch = 1'b0 ; imme_src = IMM_I ; rf_wen = 1'b0 ; dmem_wen = 1'b0 ; 
+        jp = JP_ADD4 ; branch = 1'b0 ; imme_src = IMM_I ; rf_wen = 1'b0 ; dm_wen = 1'b0 ; 
         rf_rd_src = RD_ALU ; alub_src = ALUB_RF ; alu_op = 2'b10 ; 
 
-        case (opcode)              // {jp,branch,imme_src,rf_wen,dmem_wen,rf_rd_src,alub_src,alu_op}
+        case (opcode)              // {jp,branch,imme_src,rf_wen,dm_wen,rf_rd_src,alub_src,alu_op}
             OP_R_TYPE: begin
                 rf_wen = 1'b1 ; imme_src = imme_src_t'(3'bxxx) ; // 13'b00_0_xxx_1_0_00_0_10;  R-type 
             end 
@@ -34,21 +34,21 @@ module decoder (
                 rf_wen = 1'b1 ; rf_rd_src = RD_DM ; alub_src = ALUB_IMME ; alu_op = 2'b00 ; // 13'b00_0_000_1_0_01_1_00;  I-load
             end        
             OP_JALR  : begin
-                jp = PC_ALU ; rf_wen = 1'b1 ; rf_rd_src = RD_PC ; alub_src = ALUB_IMME ; alu_op = 2'b00 ;
+                jp = JP_ALU ; rf_wen = 1'b1 ; rf_rd_src = RD_PC ; alub_src = ALUB_IMME ; alu_op = 2'b00 ;
             end // 13'b10_0_011_1_0_10_1_00;  I-jalr
             OP_STORE : begin
-                imme_src = IMM_S ; dmem_wen = 1'b1 ; rf_rd_src = rf_rd_src_t'(2'bxx) ; alub_src = ALUB_IMME ; alu_op = 2'b00 ;
+                imme_src = IMM_S ; dm_wen = 1'b1 ; rf_rd_src = rf_rd_src_t'(2'bxx) ; alub_src = ALUB_IMME ; alu_op = 2'b00 ;
             end // 13'b00_0_001_0_1_xx_1_00;  S-type
             OP_BRANCH: begin
-                jp = PC_ADDI ; branch = 1'b1 ; imme_src = IMM_B ; rf_rd_src = rf_rd_src_t'(2'bxx); alub_src = ALUB_RF ; alu_op = 2'b01 ;
+                jp = JP_ADDI ; branch = 1'b1 ; imme_src = IMM_B ; rf_rd_src = rf_rd_src_t'(2'bxx); alub_src = ALUB_RF ; alu_op = 2'b01 ;
             end // 13'b00_1_010_0_0_xx_0_01;  B-type
             OP_JAL   : begin
-                jp = PC_ADDI ; imme_src = IMM_J ; rf_wen = 1'b1 ; rf_rd_src = RD_PC ; alub_src = alub_src_t'(1'bx) ; alu_op = 2'bxx ;
+                jp = JP_ADDI ; imme_src = IMM_J ; rf_wen = 1'b1 ; rf_rd_src = RD_PC ; alub_src = alub_src_t'(1'bx) ; alu_op = 2'bxx ;
             end // 13'b01_0_011_1_0_10_x_xx;  J-type
             // OP_LUI: ; lui
             // OP_AUIPC: ; auipc
             default  : begin
-                jp = PC_ADD4 ; branch = 1'b0 ; imme_src = IMM_I ; rf_wen = 1'b0 ; dmem_wen = 1'b0 ; 
+                jp = JP_ADD4 ; branch = 1'b0 ; imme_src = IMM_I ; rf_wen = 1'b0 ; dm_wen = 1'b0 ; 
                 rf_rd_src = RD_ALU ; alub_src = ALUB_RF ; alu_op = 2'b10 ; 
             end
         endcase
