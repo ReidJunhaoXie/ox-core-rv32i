@@ -7,12 +7,19 @@ package core_pkg;
     localparam int IRAM_ADDR_WIDTH = 12;
     localparam int DRAM_ADDR_WIDTH = 12;
 
+    // JP out 
+    typedef enum logic [1:0] {
+        JP_ADD4 = 2'b00 ,
+        JP_ADDI = 2'b01 ,
+        JP_ALU  = 2'b10 
+    } jp_t;
+
     // PC Source 
     typedef enum logic [1:0] {
         PC_ADD4 = 2'b00 ,
         PC_ADDI = 2'b01 ,
         PC_ALU  = 2'b10 
-    } jp_t;
+    } pc_src_t;
 
     // Immediate Source
     typedef enum logic [2:0] {
@@ -79,46 +86,18 @@ package core_pkg;
 
     // ID to EX signal group
     typedef struct packed {
-        logic [31:0]    pc;      
-        logic [31:0]    pc_add4 ;   
 
         // control signal
         jp_t            jp ;
         logic           branch ;
-        imme_src_t      imme_src ;
         logic           rf_wen ;
-        logic           dmem_wen ;
+        logic           dm_wen ;
         rf_rd_src_t     rf_rd_src ;
         alub_src_t      alub_src ;
-        alu_ctrl_t      alu_ctrl ;
-
-        logic [11:7]    waddr ; // rd
-        logic [31:0]    imme_ext ; 
+        logic [3:0]     alu_ctrl ;
 
     } id_ex_t;
 
-    // EX to MEM signal group
-    typedef struct packed {
-        logic [XLEN-1:0] alu_result;  // ALU out
-        logic [XLEN-1:0] mem_wdata;   // rdata_2
-        logic [4:0]  rd;          // rd
-        
-        // control signal
-        logic        [1:0]result_src;
-        logic        mem_write;
-        logic        mem_read;
-        logic        reg_write;
-    } ex_mem_t;
 
-    // MEM to WB signal group
-    typedef struct packed {
-        logic [31:0] alu_result;  // ALU out
-        logic [31:0] mem_rdata;   // D_RAM --> RF
-        logic [4:0]  rd;          // MEM --> RF
-        
-        // control signal
-        logic        [1:0]result_src;      
-        logic        reg_write; 
-    } mem_wb_t;
 
 endpackage
