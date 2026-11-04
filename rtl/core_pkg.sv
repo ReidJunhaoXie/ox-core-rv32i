@@ -98,6 +98,28 @@ package core_pkg;
 
     } id_ex_t;
 
+    // EX to MEM signal group
+    typedef struct packed {
+        logic [31:0] alu_out;  // ALU out
+        logic [31:0] rdata2;   // rdata_2
+        logic [4:0]  rd;          // rd
+        
+        // control signal
+        logic        [1:0]result_src;
+        logic        mem_write;
+        logic        mem_read;
+        logic        reg_write;
+    } ex_mem_t;
 
+    // MEM to WB signal group
+    typedef struct packed {
+        logic [31:0] alu_result;  // ALU out
+        logic [31:0] mem_rdata;   // D_RAM --> RF
+        logic [4:0]  rd;          // MEM --> RF
+        
+        // control signal
+        logic        [1:0]result_src;      
+        logic        reg_write; 
+    } mem_wb_t;
 
 endpackage
