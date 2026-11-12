@@ -1,9 +1,8 @@
+module idu 
 import core_pkg::*;
-
-module idu (
+(
     input logic [31:0]    instruction, 
     input logic [31:0]    pc,
-    input logic [31:0]    pc_add4,
 
     output id_ex_t  id_ex,         // pipeline signal
 
@@ -12,8 +11,7 @@ module idu (
 
     output logic [4:0]      rf_waddr,       // to next stage
     output logic [31:0]     imme_ext,
-    output logic [31:0]     pc_out,
-    output logic [31:0]     pc_add4_out
+    output logic [31:0]     pc_out
 );
     logic [6:0]     opcode ;
     logic [14:12]   funct3 ;
@@ -32,14 +30,13 @@ module idu (
     assign rf_raddr2   = instruction[24:20] ;
 
     assign pc_out       = pc ;
-    assign pc_add4_out  = pc_add4 ;
 
     // decoder
     decoder u0 (.opcode(opcode),.funct3(funct3),
     .funct7(funct7),.jp(id_ex.jp),.branch(id_ex.branch),.imme_src(imme_src),
     .rf_wen(id_ex.rf_wen),.dm_wen(id_ex.dm_wen),.rf_rd_src(id_ex.rf_rd_src),
-    .alub_src(id_ex.alub_src),.alu_ctrl(id_ex.alu_ctrl)) ;
-
+    .alub_src(id_ex.alub_src),.alua_src(id_ex.alua_src),.alu_ctrl(id_ex.alu_ctrl)) ;
+    assign  id_ex.funct3    =   funct3 ;
     // immegen
     imme_gen u1 (.inst(imme),.imme_src(imme_src),.imme_ext(imme_ext)) ;
 
