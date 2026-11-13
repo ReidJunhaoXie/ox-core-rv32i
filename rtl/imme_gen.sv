@@ -1,8 +1,8 @@
-import core_pkg::*;
-
-module imme_gen (
+module imme_gen 
+    import core_pkg::*;
+(
     input   logic   [31:7]  inst ,
-    input   imme_src_t  imme_src ,
+    input   imme_src_t      imme_src ,
     output  logic   [31:0]  imme_ext 
 );
 
