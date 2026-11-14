@@ -29,14 +29,15 @@ import core_pkg::*;
 
     assign pc_out       = pc ;
 
+    imme_src_t  imme_src ;
     // decoder
     decoder u0 (.opcode(opcode),.funct3(funct3),
-    .funct7(funct7),.jp(id_ex.jp),.branch(id_ex.branch),.imme_src(id_ex.imme_src),
+    .funct7(funct7),.jp(id_ex.jp),.branch(id_ex.branch),.imme_src(imme_src),
     .rf_wen(id_ex.rf_wen),.dm_wen(id_ex.dm_wen),.rf_rd_src(id_ex.rf_rd_src),
     .alub_src(id_ex.alub_src),.alua_src(id_ex.alua_src),.alu_ctrl(id_ex.alu_ctrl)) ;
     assign  id_ex.funct3    =   funct3 ;
     // immegen
-    imme_gen u1 (.inst(imme),.imme_src(id_ex.imme_src),.imme_ext(imme_ext)) ;
+    imme_gen u1 (.inst(imme),.imme_src(imme_src),.imme_ext(imme_ext)) ;
 
 
 endmodule
