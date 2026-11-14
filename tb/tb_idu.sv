@@ -7,10 +7,11 @@ module tb_idu;
     import core_pkg::*;
 
     // signals with the same names as the idu ports
-    logic [31:0] instruction, pc;
+    logic [31:0] instruction;
     id_ex_t      id_ex;
     logic [4:0]  rf_raddr1, rf_raddr2, rf_waddr;
-    logic [31:0] imme_ext, pc_out;
+    logic [31:0] imme_ext;
+    logic [31:0] pc;        // idu no longer uses pc; kept so .* still finds a match while idu has a pc port
 
     idu dut (.*);       // signal names match the port names, so .* connects them automatically
 
@@ -133,14 +134,13 @@ module tb_idu;
         id_ex_t exp;
         exp         = ref_ctrl(ins);
         instruction = ins;
-        pc          = $urandom;                  // pc only passes through, so any value will do
+        pc          = $urandom;                  // idu does not use pc: a random value shows no output depends on it
         #1;
         n_test++;
         // ==? skips the bits that are x in the expected value.
         // "!== 1'b1" also fails when the DUT itself outputs x on a checked bit.
         if ((id_ex ==? exp) !== 1'b1 || (imme_ext ==? exp_imm) !== 1'b1 ||
-            rf_raddr1 !== ins[19:15] || rf_raddr2 !== ins[24:20] || rf_waddr !== ins[11:7] ||
-            pc_out !== pc) begin
+            rf_raddr1 !== ins[19:15] || rf_raddr2 !== ins[24:20] || rf_waddr !== ins[11:7]) begin
             errors++;
             if (errors <= 10) begin
                 $display("[FAIL] %s (instruction %h)", name, ins);
@@ -150,8 +150,8 @@ module tb_idu;
                 $display("   exp jp=%b branch=%b rf_wen=%b dm_wen=%b rf_rd_src=%b alub=%b alua=%b alu_ctrl=%b funct3=%b imm=%h  (x = not checked)",
                          exp.jp, exp.branch, exp.rf_wen, exp.dm_wen, exp.rf_rd_src,
                          exp.alub_src, exp.alua_src, exp.alu_ctrl, exp.funct3, exp_imm);
-                $display("   got rs1=%0d rs2=%0d rd=%0d pc_out=%h, exp rs1=%0d rs2=%0d rd=%0d pc_out=%h",
-                         rf_raddr1, rf_raddr2, rf_waddr, pc_out, ins[19:15], ins[24:20], ins[11:7], pc);
+                $display("   got rs1=%0d rs2=%0d rd=%0d, exp rs1=%0d rs2=%0d rd=%0d",
+                         rf_raddr1, rf_raddr2, rf_waddr, ins[19:15], ins[24:20], ins[11:7]);
             end
         end
     endtask
