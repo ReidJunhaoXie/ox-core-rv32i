@@ -2,7 +2,7 @@ module idu
 import core_pkg::*;
 (
     input logic [31:0]    instruction, 
-    input logic [31:0]    pc,
+    // input logic [31:0]    pc,
 
     output id_ex_t  id_ex,         // pipeline signal
 
@@ -10,8 +10,8 @@ import core_pkg::*;
     output logic [4:0]      rf_raddr2,
 
     output logic [4:0]      rf_waddr,       // to next stage
-    output logic [31:0]     imme_ext,
-    output logic [31:0]     pc_out
+    output logic [31:0]     imme_ext
+    // output logic [31:0]     pc_out
 );
     logic [6:0]     opcode ;
     logic [14:12]   funct3 ;
@@ -27,7 +27,7 @@ import core_pkg::*;
     assign rf_raddr1   = instruction[19:15] ; 
     assign rf_raddr2   = instruction[24:20] ;
 
-    assign pc_out       = pc ;
+    // assign pc_out       = pc ;
 
     imme_src_t  imme_src ;
     // decoder
