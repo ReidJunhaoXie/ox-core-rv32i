@@ -90,6 +90,7 @@ package core_pkg;
     // ID to EX signal group
     typedef struct packed {
         // control signal
+        imme_src_t      imme_src ;
         jp_t            jp ;
         logic           branch ;
         logic           rf_wen ;
