@@ -7,12 +7,11 @@ module tb_lsu;
 
     // signals with the same names as the lsu ports
     logic [1:0]  addr;
-    logic [31:0] rf_rdata2, dm_rdata;
+    logic [31:0] rf_rdata2, dm_rdata_i;
     logic [2:0]  funct3;
     logic        dm_wen;
     logic [31:0] dm_wdata_o, dm_rdata_o;
     logic [3:0]  byteen;
-    logic        dm_wen_o;
 
     lsu dut (.*);
 
@@ -97,11 +96,11 @@ module tb_lsu;
         funct3    = {1'b0, f3};
         addr      = a;
         rf_rdata2 = data;
-        dm_rdata  = $urandom;                 // not used by a store
+        dm_rdata_i = $urandom;                // not used by a store
         #1;
         n_store++;
         got_mem = apply_write(mem, byteen, dm_wdata_o);
-        if (byteen !== exp_be || got_mem !== exp_mem || dm_wen_o !== wen) begin
+        if (byteen !== exp_be || got_mem !== exp_mem) begin
             store_errors++;
             if (store_errors <= MAX_PRINT)
                 $display("[FAIL] store wen=%b f3=%b addr=%0d data=%h : byteen=%b (exp %b), mem=%h (exp %h)",
@@ -117,7 +116,7 @@ module tb_lsu;
         dm_wen    = 1'b0;
         funct3    = f3;
         addr      = a;
-        dm_rdata  = word;
+        dm_rdata_i = word;
         rf_rdata2 = $urandom;                 // not used by a load
         #1;
         n_load++;
