@@ -1,18 +1,21 @@
 // tb_exu.sv : exu testbench (directed tests + reference model)
-//   iverilog -g2012 -o sim/sim.out rtl/shifter.sv rtl/alu_adder.sv rtl/alu.sv rtl/exu.sv tb/tb_exu.sv
+//   iverilog -g2012 -o sim/sim.out rtl/core_pkg.sv rtl/shifter.sv rtl/alu_adder.sv rtl/alu.sv rtl/exu.sv tb/tb_exu.sv
 //   vvp sim/sim.out
 `timescale 1ns/1ps
 
 module tb_exu;
+    import core_pkg::*;
 
     // signals with the same names as the exu ports
-    logic [31:0] rf_rdata1, rf_rdata2, imme_ext, pc_in, pc_add4_in;
+    logic [31:0] rf_rdata1, rf_rdata2, imme_ext, pc_in;
     logic [2:0]  funct3;
     logic [3:0]  alu_ctrl;
-    logic [1:0]  jp, pc_src;
-    logic        branch, alub_src, flag;
-    logic [4:0]  rf_waddr, rf_waddr_o;
-    logic [31:0] alu_out, pc_adder_out, rf_rdata2_o, pc_add4_o;
+    jp_t         jp;
+    logic        branch;
+    alub_src_t   alub_src;      // ALU B input: rs2 or imm
+    alua_src_t   alua_src;      // ALU A input: rs1, 0 (LUI) or pc (AUIPC)
+    pc_src_t     pc_src;
+    logic [31:0] alu_out, pc_adder_out, pc_add4;
 
     exu dut (.*);       // signal names match the port names, so .* connects them automatically
 
@@ -63,43 +66,42 @@ module tb_exu;
     // Test tasks
     // ------------------------------------------------------------------
 
-    // pc and rd do not affect the result, but they get new random values on every test
-    // so that every bit of pc_adder_out, pc_add4_o and rf_waddr_o is actually checked
-    task automatic random_pc_rd();
-        pc_in      = $urandom & 32'hFFFF_FFFC;   // 4-byte aligned
-        pc_add4_in = pc_in + 32'd4;
-        rf_waddr   = $urandom_range(0, 31);
+    // pc does not affect the ALU result, but it gets a new random value on every test
+    // so that every bit of pc_adder_out and pc_add4 is actually checked
+    task automatic random_pc();
+        pc_in = $urandom & 32'hFFFF_FFFC;   // 4-byte aligned
     endtask
 
-    // outputs checked on every test: the jump target and the pass-through signals
+    // outputs checked on every test: the jump target pc + imm and the return address pc + 4
     task automatic check_common(input string name);
-        if (pc_adder_out !== pc_in + imme_ext || rf_rdata2_o !== rf_rdata2 ||
-            pc_add4_o    !== pc_add4_in       || rf_waddr_o  !== rf_waddr) begin
+        if (pc_adder_out !== pc_in + imme_ext || pc_add4 !== pc_in + 32'd4) begin
             errors++;
-            $display("[FAIL] %s : pc_in = %h, pc_adder_out = %h, rf_rdata2_o = %h, pc_add4_o = %h, rf_waddr_o = %h",
-                     name, pc_in, pc_adder_out, rf_rdata2_o, pc_add4_o, rf_waddr_o);
+            $display("[FAIL] %s : pc_in = %h, pc_adder_out = %h, pc_add4 = %h",
+                     name, pc_in, pc_adder_out, pc_add4);
         end
     endtask
 
     // one ALU operation: apply controls and operands, check alu_out, and make sure no jump is taken
     task automatic alu_test(input string       name,
                             input logic [3:0]  ctrl,      // alu_ctrl
-                            input logic        src,       // alub_src: 1 = imm, 0 = rs2
+                            input logic        src,       // 1 = imm, 0 = rs2
                             input logic [31:0] rs1, rs2, imm);
         logic [31:0] expected;
         expected  = ref_alu(ctrl, rs1, src ? imm : rs2);   // expected value from the reference model
-        random_pc_rd();
+        random_pc();
 
         rf_rdata1 = rs1;
         rf_rdata2 = rs2;
         imme_ext  = imm;
         alu_ctrl  = ctrl;
-        alub_src  = src;
+        if (src) alub_src = ALUB_IMME;
+        else     alub_src = ALUB_RF;
+        alua_src  = ALUA_RF;
         funct3    = ctrl[2:0];   // for ALU instructions, funct3 = alu_ctrl[2:0]
         branch    = 1'b0;
-        jp        = 2'b00;
+        jp        = JP_ADD4;
         #1;
-        if (alu_out !== expected || pc_src !== 2'b00) begin
+        if (alu_out !== expected || pc_src !== PC_ADD4) begin
             errors++;
             $display("[FAIL] %s : alu_out = %h (expected %h), pc_src = %b",
                      name, alu_out, expected, pc_src);
@@ -107,48 +109,83 @@ module tb_exu;
         check_common(name);
     endtask
 
-    // one branch: apply funct3 and two registers, check flag and pc_src
+    // one branch: apply funct3 and two registers; pc_src must be PC_ADDI if taken, PC_ADD4 if not
+    // (the branch flag stays inside exu, so pc_src is where the decision shows up)
     task automatic branch_test(input string       name,
                                input logic [2:0]  f3,
                                input logic [31:0] rs1, rs2);
-        logic taken;
-        taken     = ref_taken(f3, rs1, rs2);               // expected value from the reference model
-        random_pc_rd();
+        logic    taken;
+        pc_src_t expected;
+        taken = ref_taken(f3, rs1, rs2);                   // expected value from the reference model
+        if (taken) expected = PC_ADDI;
+        else       expected = PC_ADD4;
+        random_pc();
 
         rf_rdata1 = rs1;
         rf_rdata2 = rs2;
         imme_ext  = 32'h10;
         alu_ctrl  = 4'b1000;     // branches always subtract
-        alub_src  = 1'b0;        // compare rs1 with rs2
+        alub_src  = ALUB_RF;     // compare rs1 with rs2
+        alua_src  = ALUA_RF;
         funct3    = f3;
         branch    = 1'b1;
-        jp        = 2'b00;
+        jp        = JP_ADD4;
         #1;
-        if (flag !== taken || pc_src !== {1'b0, taken}) begin
+        if (pc_src !== expected) begin
             errors++;
-            $display("[FAIL] %s : flag = %b (expected %b), pc_src = %b",
-                     name, flag, taken, pc_src);
+            $display("[FAIL] %s : pc_src = %b (expected %b, taken = %b)",
+                     name, pc_src, expected, taken);
         end
         check_common(name);
     endtask
 
     // one jump: check pc_src; for JALR also check alu_out = rs1 + imm (bit 0 is cleared in IF)
     task automatic jump_test(input string       name,
-                             input logic [1:0]  j,         // jp: 01 = JAL, 10 = JALR
+                             input jp_t         j,         // JP_ADDI = JAL, JP_ALU = JALR
                              input logic [31:0] rs1, imm);
-        random_pc_rd();
+        pc_src_t expected;
+        if (j == JP_ALU) expected = PC_ALU;                // JALR: target from the ALU
+        else             expected = PC_ADDI;               // JAL : target pc + imm
+        random_pc();
+
         rf_rdata1 = rs1;
         rf_rdata2 = 32'd0;
         imme_ext  = imm;
         alu_ctrl  = 4'b0000;     // JALR target = rs1 + imm
-        alub_src  = 1'b1;
+        alub_src  = ALUB_IMME;
+        alua_src  = ALUA_RF;
         funct3    = 3'b000;
         branch    = 1'b0;
         jp        = j;
         #1;
-        if (pc_src !== j || (j == 2'b10 && alu_out !== rs1 + imm)) begin
+        if (pc_src !== expected || (j == JP_ALU && alu_out !== rs1 + imm)) begin
             errors++;
-            $display("[FAIL] %s : pc_src = %b, alu_out = %h", name, pc_src, alu_out);
+            $display("[FAIL] %s : pc_src = %b (expected %b), alu_out = %h", name, pc_src, expected, alu_out);
+        end
+        check_common(name);
+    endtask
+
+    // LUI / AUIPC: ALU A takes 0 or pc instead of rs1, so the junk in rs1 must not reach the result
+    task automatic upper_test(input string       name,
+                              input alua_src_t   a_src,     // ALUA_ZERO = LUI, ALUA_PC = AUIPC
+                              input logic [31:0] imm);      // U-type immediate: {imm20, 12'b0}
+        logic [31:0] expected;
+        random_pc();
+        expected  = (a_src == ALUA_PC) ? pc_in + imm : imm;
+
+        rf_rdata1 = 32'hDEAD_BEEF;   // junk: LUI and AUIPC have no rs1
+        rf_rdata2 = $urandom;
+        imme_ext  = imm;
+        alu_ctrl  = 4'b0000;         // add
+        alub_src  = ALUB_IMME;
+        alua_src  = a_src;
+        funct3    = imm[14:12];      // instr[14:12] is part of the immediate, the decoder passes it on anyway
+        branch    = 1'b0;
+        jp        = JP_ADD4;
+        #1;
+        if (alu_out !== expected || pc_src !== PC_ADD4) begin
+            errors++;
+            $display("[FAIL] %s : alu_out = %h (expected %h), pc_src = %b", name, alu_out, expected, pc_src);
         end
         check_common(name);
     endtask
@@ -199,9 +236,15 @@ module tb_exu;
         branch_test("BGEU 0, 0",        3'b111, 32'd0,         32'd0);          // taken
         branch_test("BGEU 1, FFFFFFFF", 3'b111, 32'd1,         32'hFFFF_FFFF);  // not taken
 
-        //        name          jp     rs1            imm
-        jump_test("JAL",        2'b01, 32'd0,         32'hFFFF_F000);
-        jump_test("JALR odd",   2'b10, 32'h0000_1001, 32'd0);
+        //        name          jp       rs1            imm
+        jump_test("JAL",        JP_ADDI, 32'd0,         32'hFFFF_F000);
+        jump_test("JALR odd",   JP_ALU,  32'h0000_1001, 32'd0);
+
+        //         name             ALU A      imm
+        upper_test("LUI 0x12345",   ALUA_ZERO, 32'h1234_5000);
+        upper_test("LUI 0xFFFFF",   ALUA_ZERO, 32'hFFFF_F000);
+        upper_test("AUIPC 0x23",    ALUA_PC,   32'h0002_3000);
+        upper_test("AUIPC 0x80000", ALUA_PC,   32'h8000_0000);
 
         if (errors == 0) $display("PASS");
         else             $fatal(1, "FAIL: %0d errors", errors);
