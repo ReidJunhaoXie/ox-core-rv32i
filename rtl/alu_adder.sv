@@ -12,6 +12,7 @@ module alu_adder (
 );
     logic           sub_en ;
     assign sub_en = alu_ctrl_1 | alu_ctrl_3 ;
+    
     logic [31:0]    adder_a ;
     logic [31:0]    adder_b ;
     assign adder_a = rf_rdata1 ;

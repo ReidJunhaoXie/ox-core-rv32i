@@ -26,6 +26,7 @@ module shifter (
 
     assign shift_in_bit = sign ? in[31] : 1'b0 ;
 
+    // barrel shifter
     assign shift_s1 = shamt[0]? {  in_mux[30:0],shift_in_bit} : in_mux ;
     assign shift_s2 = shamt[1]? {shift_s1[29:0],{ 2 {shift_in_bit} } } : shift_s1 ;
     assign shift_s3 = shamt[2]? {shift_s2[27:0],{ 4 {shift_in_bit} } } : shift_s2 ;
