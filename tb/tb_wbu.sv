@@ -1,12 +1,13 @@
 // tb_wbu.sv : wbu testbench (every rf_rd_src value, directed + random data)
-//   iverilog -g2012 -o sim/sim.out rtl/wbu.sv tb/tb_wbu.sv
+//   iverilog -g2012 -o sim/sim.out rtl/core_pkg.sv rtl/wbu.sv tb/tb_wbu.sv
 //   vvp sim/sim.out
 `timescale 1ns/1ps
 
 module tb_wbu;
+    import core_pkg::*;
 
     // signals with the same names as the wbu ports
-    logic [1:0]  rf_rd_src;
+    rf_rd_src_t  rf_rd_src;
     logic [31:0] dm_rdata, alu_out, pc_add4;
     logic [31:0] rf_wdata;
 
@@ -17,16 +18,20 @@ module tb_wbu;
 
     // ------------------------------------------------------------------
     // Reference model: the value written back to rd for each rf_rd_src
+    // (uses the names from core_pkg, so it follows any change of the encoding)
     // ------------------------------------------------------------------
-    function automatic logic [31:0] ref_wdata(input logic [1:0]  src,
+    function automatic logic [31:0] ref_wdata(input rf_rd_src_t  src,
                                               input logic [31:0] dm, alu, pc4);
         case (src)
-            2'b00  : return dm;      // load       : data read from memory
-            2'b01  : return alu;     // R / I-type : ALU result
-            2'b10  : return pc4;     // JAL / JALR : return address pc + 4
-            default: return pc4;     // 11 is not used by the decoder; the RTL's default gives pc_add4
+            RD_DM  : return dm;      // load       : data read from memory
+            RD_ALU : return alu;     // R / I-type : ALU result
+            RD_PC  : return pc4;     // JAL / JALR : return address pc + 4
+            default: return pc4;     // 11 is not a legal rf_rd_src_t value; the RTL's default gives pc_add4
         endcase
     endfunction
+
+    // the value 2'b11 has no name in rf_rd_src_t, so it needs an explicit cast
+    localparam rf_rd_src_t RD_UNUSED = rf_rd_src_t'(2'b11);
 
     // ------------------------------------------------------------------
     // Test task
@@ -34,7 +39,7 @@ module tb_wbu;
 
     // one write-back: apply the select and the three inputs, check rf_wdata
     task automatic wb_test(input string       name,
-                           input logic [1:0]  src,
+                           input rf_rd_src_t  src,
                            input logic [31:0] dm, alu, pc4);
         logic [31:0] expected;
         expected  = ref_wdata(src, dm, alu, pc4);   // expected value from the reference model
@@ -61,25 +66,25 @@ module tb_wbu;
     initial begin
         // 1. each source once; the three inputs hold different, easy-to-recognise values
         //    (D... = memory, A... = ALU, 0000_1004 = pc + 4), so a failure shows at a glance which input was picked
-        //       name                 src    dm_rdata       alu_out        pc_add4
-        wb_test("load   -> dm_rdata", 2'b00, 32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
-        wb_test("ALU    -> alu_out",  2'b01, 32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
-        wb_test("JAL(R) -> pc_add4",  2'b10, 32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
-        wb_test("unused 11",          2'b11, 32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
+        //       name                 src        dm_rdata       alu_out        pc_add4
+        wb_test("load   -> dm_rdata", RD_DM,     32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
+        wb_test("ALU    -> alu_out",  RD_ALU,    32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
+        wb_test("JAL(R) -> pc_add4",  RD_PC,     32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
+        wb_test("unused 11",          RD_UNUSED, 32'hDA7A_1234, 32'hA1B2_C3D4, 32'h0000_1004);
 
         // 2. the selected input is the exact opposite of the other two, so every output bit
         //    must be 1 in one test and 0 in the other, and must come from the selected input
-        //       name                 src    dm_rdata       alu_out        pc_add4
-        wb_test("load   ones",        2'b00, 32'hFFFF_FFFF, 32'h0000_0000, 32'h0000_0000);
-        wb_test("load   zeros",       2'b00, 32'h0000_0000, 32'hFFFF_FFFF, 32'hFFFF_FFFF);
-        wb_test("ALU    ones",        2'b01, 32'h0000_0000, 32'hFFFF_FFFF, 32'h0000_0000);
-        wb_test("ALU    zeros",       2'b01, 32'hFFFF_FFFF, 32'h0000_0000, 32'hFFFF_FFFF);
-        wb_test("JAL(R) ones",        2'b10, 32'h0000_0000, 32'h0000_0000, 32'hFFFF_FFFF);
-        wb_test("JAL(R) zeros",       2'b10, 32'hFFFF_FFFF, 32'hFFFF_FFFF, 32'h0000_0000);
-        wb_test("unused ones",        2'b11, 32'h0000_0000, 32'h0000_0000, 32'hFFFF_FFFF);
-        wb_test("unused zeros",       2'b11, 32'hFFFF_FFFF, 32'hFFFF_FFFF, 32'h0000_0000);
+        //       name                 src        dm_rdata       alu_out        pc_add4
+        wb_test("load   ones",        RD_DM,     32'hFFFF_FFFF, 32'h0000_0000, 32'h0000_0000);
+        wb_test("load   zeros",       RD_DM,     32'h0000_0000, 32'hFFFF_FFFF, 32'hFFFF_FFFF);
+        wb_test("ALU    ones",        RD_ALU,    32'h0000_0000, 32'hFFFF_FFFF, 32'h0000_0000);
+        wb_test("ALU    zeros",       RD_ALU,    32'hFFFF_FFFF, 32'h0000_0000, 32'hFFFF_FFFF);
+        wb_test("JAL(R) ones",        RD_PC,     32'h0000_0000, 32'h0000_0000, 32'hFFFF_FFFF);
+        wb_test("JAL(R) zeros",       RD_PC,     32'hFFFF_FFFF, 32'hFFFF_FFFF, 32'h0000_0000);
+        wb_test("unused ones",        RD_UNUSED, 32'h0000_0000, 32'h0000_0000, 32'hFFFF_FFFF);
+        wb_test("unused zeros",       RD_UNUSED, 32'hFFFF_FFFF, 32'hFFFF_FFFF, 32'h0000_0000);
 
-        // 3. random values on all three inputs, 100 times for every source
+        // 3. random values on all three inputs, 100 times for every select value (00, 01, 10, 11)
         for (int s = 0; s < 4; s++)
             repeat (100) begin
                 // draw again if two inputs are equal: picking the wrong one would then look correct
@@ -88,7 +93,7 @@ module tb_wbu;
                     rand_alu = $urandom;
                     rand_pc4 = $urandom;
                 end while (rand_dm == rand_alu || rand_dm == rand_pc4 || rand_alu == rand_pc4);
-                wb_test("random", s[1:0], rand_dm, rand_alu, rand_pc4);
+                wb_test("random", rf_rd_src_t'(s[1:0]), rand_dm, rand_alu, rand_pc4);
             end
 
         $display("%0d tests, %0d errors", n_test, errors);
