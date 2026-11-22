@@ -1,9 +1,6 @@
-// load package
-import core_pkg::*;
-
 module reg_file #(
-    parameter int DATA_WIDTH = core_pkg::XLEN,
-    parameter int ADDR_WIDTH = core_pkg::REG_ADDR_WIDTH
+    parameter int DATA_WIDTH = 32,
+    parameter int ADDR_WIDTH = 5
 )
 (
     input logic clk,
@@ -18,7 +15,8 @@ module reg_file #(
     input logic [ADDR_WIDTH-1:0] waddr,
     input logic [DATA_WIDTH-1:0] wdata
 );
-logic [DATA_WIDTH-1:0] rf [1:31]; // without x0
+logic [DATA_WIDTH-1:0] rf [1:2**ADDR_WIDTH-1]; // without x0
+// [31:0][1:31]
 
 // Sync Write
 always_ff @( posedge clk ) begin : Sync_Write

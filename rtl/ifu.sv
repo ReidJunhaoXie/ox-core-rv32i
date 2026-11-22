@@ -21,9 +21,10 @@ module ifu
             default:    pc_next = pc_add4 ;
         endcase
     end
-    always_ff @(posedge clk or negedge rst_n) begin : pc_reg
+    // revise to sync reset
+    always_ff @(posedge clk ) begin : pc_reg
         if (!rst_n) pc <= '0 ;
-        else pc <= pc_next ;
+        else        pc <= pc_next ;
     end
     
 endmodule
